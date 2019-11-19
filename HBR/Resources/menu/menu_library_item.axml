@@ -1,0 +1,19 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools">
+  <item
+      android:id="@+id/menuItem_libraryItem_details"
+      android:orderInCategory="100"
+      android:title="Részletek"
+      app:showAsAction="never" />
+  <item
+      android:id="@+id/menuItem_libraryItem_removeFromShelf"
+      android:orderInCategory="100"
+      android:title="Levétel a polcról"
+      app:showAsAction="never" />
+  <item
+      android:id="@+id/menuItem_libraryItem_delete"
+      android:orderInCategory="100"
+      android:title="Törlés"
+      app:showAsAction="never" />
+</menu>

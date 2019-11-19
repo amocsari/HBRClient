@@ -17,14 +17,15 @@ using Android.Support.V7.App;
 using Android.Views;
 using Android.Webkit;
 using Android.Widget;
+using HBR.Model;
 using IdentityModel.OidcClient;
 using Plugin.FilePicker;
 using Plugin.FilePicker.Abstractions;
 
-namespace HBR
+namespace HBR.View
 {
-    [Activity(Label = "@string/app_name", Theme = "@style/AppTheme.NoActionBar", MainLauncher = true)]
-    public class MainActivity : AppCompatActivity, NavigationView.IOnNavigationItemSelectedListener
+    [Activity(Label = "@string/app_name", Theme = "@style/AppTheme.NoActionBar")]
+    public class ReadingActivity : AppCompatActivity, NavigationView.IOnNavigationItemSelectedListener
     {
         private OidcClient oidcClient;
         private HttpClient _apiClient;
@@ -46,12 +47,9 @@ namespace HBR
         {
             base.OnCreate(savedInstanceState);
             Xamarin.Essentials.Platform.Init(this, savedInstanceState);
-            SetContentView(Resource.Layout.activity_main);
+            SetContentView(Resource.Layout.activity_reading);
             Android.Support.V7.Widget.Toolbar toolbar = FindViewById<Android.Support.V7.Widget.Toolbar>(Resource.Id.toolbar);
             SetSupportActionBar(toolbar);
-
-            FloatingActionButton fab = FindViewById<FloatingActionButton>(Resource.Id.fab);
-            fab.Click += FabOnClick;
 
             webView = FindViewById<WebView>(Resource.Id.contentWebView);
             webView.Settings.JavaScriptEnabled = true;
@@ -126,112 +124,61 @@ namespace HBR
 
         private async Task OpenEpub()
         {
-            FileData fileData = await CrossFilePicker.Current.PickFile(new string[] { ".epub" });
-            if (fileData == null)
-                return;
+            //FileData fileData = await CrossFilePicker.Current.PickFile(new string[] { ".epub" });
+            //if (fileData == null)
+            //    return;
 
-            using (var zipToOpen = new MemoryStream(fileData.DataArray))
-            using (var zipArchive = new ZipArchive(zipToOpen, ZipArchiveMode.Read))
-            {
-                var cont = zipArchive.Entries.FirstOrDefault(e => e.Name == "content.opf");
-                var docContents = XDocument.Load(cont.Open());
-                var nameSpaceContents = docContents.Root.Name.Namespace;
+            //using (var zipToOpen = new MemoryStream(fileData.DataArray))
+            //using (var zipArchive = new ZipArchive(zipToOpen, ZipArchiveMode.Read))
+            //{
+            //    var cont = zipArchive.Entries.FirstOrDefault(e => e.Name == "content.opf");
+            //    var docContents = XDocument.Load(cont.Open());
+            //    var nameSpaceContents = docContents.Root.Name.Namespace;
 
-                var metadata = docContents.Descendants(nameSpaceContents + "metadata").Descendants();
-                var titleNode = metadata.FirstOrDefault(e => e.Name.LocalName == "title");
-                var authorNode = metadata.FirstOrDefault(e => e.Name.LocalName == "creator");
-                var coverNode = metadata.FirstOrDefault(e => e.Attributes().Any(a => a.Name == "name" && a.Value == "cover"));
+            //    var metadata = docContents.Descendants(nameSpaceContents + "metadata").Descendants();
 
-                if (textViewAuthor == null)
-                    textViewAuthor = FindViewById<TextView>(Resource.Id.textViewWriter);
-                if (textViewTitle == null)
-                    textViewTitle = FindViewById<TextView>(Resource.Id.textViewTitle);
-                if (imageViewCover == null)
-                    imageViewCover = FindViewById<ImageView>(Resource.Id.imageViewCover);
+            //    if (textViewAuthor == null)
+            //        textViewAuthor = FindViewById<TextView>(Resource.Id.textViewWriter);
+            //    if (textViewTitle == null)
+            //        textViewTitle = FindViewById<TextView>(Resource.Id.textViewTitle);
+            //    if (imageViewCover == null)
+            //        imageViewCover = FindViewById<ImageView>(Resource.Id.imageViewCover);
 
-                textViewTitle.Text = titleNode?.Value;
-                textViewAuthor.Text = authorNode?.Value;
+            //    textViewTitle.Text = titleNode?.Value;
+            //    textViewAuthor.Text = authorNode?.Value;
 
-                var coverLocation = coverNode?.Attributes().FirstOrDefault(a => a.Name == "content")?.Value;
+            //    chapterList = FindChapterList(tableOfContents);
 
-                if (coverLocation != null)
-                {
-                    var cover = zipArchive.Entries.FirstOrDefault(e => e.Name == coverLocation);
+            //    tableMenu.Clear();
+            //}
 
-                    if (cover == null)
-                        cover = zipArchive.Entries.FirstOrDefault(e => e.Name.StartsWith(coverLocation));
+            //var chapterIndex = 0;
+            //foreach (var chapter in chapterList)
+            //{
+            //    if (chapter.SubChapters.Count > 0)
+            //    {
+            //        var subMenu = tableMenu.AddSubMenu(0, chapterIndex, Menu.None, chapter.ChapterTitle);
+            //        chapter.MenuItemId = chapterIndex++;
+            //        chapter.OnClickCallback = new Action<bool>(async forceReload => await LoadChapterAsync(chapter, fileData, forceReload));
 
-                    if (cover != null)
-                        imageViewCover.SetImageBitmap(await BitmapFactory.DecodeStreamAsync(cover.Open()));
-                    else
-                        imageViewCover.SetImageResource(0);
-                }
+            //        foreach (var subChapter in chapter.SubChapters)
+            //        {
+            //            subMenu.Add(0, chapterIndex, Menu.None, subChapter.ChapterTitle);
+            //            subChapter.MenuItemId = chapterIndex++;
 
-                var toc = zipArchive.Entries.FirstOrDefault(e => e.Name == "toc.ncx");
-                var docTableOfContents = XDocument.Load(toc.Open());
-                var nameSpaceTableOfContents = docTableOfContents.Root.Name.Namespace;
-                var tableOfContents = docTableOfContents.Descendants(nameSpaceTableOfContents + "navMap").FirstOrDefault();
+            //            subChapter.OnClickCallback = new Action<bool>(async forceReload => await LoadChapterAsync(subChapter, fileData, forceReload));
+            //        }
+            //    }
+            //    else
+            //    {
+            //        tableMenu.Add(0, chapterIndex, Menu.None, chapter.ChapterTitle);
+            //        chapter.MenuItemId = chapterIndex++;
 
-                chapterList = FindChapterList(tableOfContents);
+            //        chapter.OnClickCallback = new Action<bool>(async forceReload => await LoadChapterAsync(chapter, fileData, forceReload));
+            //    }
+            //}
 
-                tableMenu.Clear();
-            }
-
-            var chapterIndex = 0;
-            foreach (var chapter in chapterList)
-            {
-                if (chapter.SubChapters.Count > 0)
-                {
-                    var subMenu = tableMenu.AddSubMenu(0, chapterIndex, Menu.None, chapter.ChapterTitle);
-                    chapter.MenuItemId = chapterIndex++;
-                    chapter.OnClickCallback = new Action<bool>(async forceReload => await LoadChapterAsync(chapter, fileData, forceReload));
-
-                    foreach (var subChapter in chapter.SubChapters)
-                    {
-                        subMenu.Add(0, chapterIndex, Menu.None, subChapter.ChapterTitle);
-                        subChapter.MenuItemId = chapterIndex++;
-
-                        subChapter.OnClickCallback = new Action<bool>(async forceReload => await LoadChapterAsync(subChapter, fileData, forceReload));
-                    }
-                }
-                else
-                {
-                    tableMenu.Add(0, chapterIndex, Menu.None, chapter.ChapterTitle);
-                    chapter.MenuItemId = chapterIndex++;
-
-                    chapter.OnClickCallback = new Action<bool>(async forceReload => await LoadChapterAsync(chapter, fileData, forceReload));
-                }
-            }
-
-            AllChapters?.FirstOrDefault()?.OnClickCallback?.Invoke(true);
-        }
-
-        private List<Chapter> FindChapterList(XElement root)
-        {
-            var elements = root.Elements().Where(d => d.Name.LocalName == "navPoint");
-            var chapterList = new List<Chapter>();
-
-            foreach (var element in elements)
-            {
-                var chapterElements = element.Elements();
-
-                var chapterElement = chapterElements.FirstOrDefault(d => d.Name.LocalName == "navLabel");
-                var chapterTitle = chapterElement.Elements().FirstOrDefault(d => d.Name.LocalName == "text")?.Value;
-
-                var chapterSrcElement = chapterElements.FirstOrDefault(d => d.Name.LocalName == "content");
-                var chapterSrc = chapterSrcElement.Attributes().FirstOrDefault(a => a.Name == "src")?.Value;
-
-                var chapter = new Chapter
-                {
-                    ChapterTitle = chapterTitle,
-                    Src = chapterSrc,
-                    SubChapters = FindChapterList(element)
-                };
-
-                chapterList.Add(chapter);
-            }
-
-            return chapterList;
+            //AllChapters?.FirstOrDefault()?.OnClickCallback?.Invoke(true);
         }
 
         private async Task LoadChapterAsync(Chapter chapter, FileData fileData, bool forceReload)
