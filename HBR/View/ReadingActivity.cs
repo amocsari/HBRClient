@@ -17,8 +17,11 @@ using Android.Support.V7.App;
 using Android.Views;
 using Android.Webkit;
 using Android.Widget;
+using HBR.Extensions;
 using HBR.Model;
+using HBR.Model.Entity;
 using IdentityModel.OidcClient;
+using Newtonsoft.Json;
 using Plugin.FilePicker;
 using Plugin.FilePicker.Abstractions;
 
@@ -27,6 +30,8 @@ namespace HBR.View
     [Activity(Label = "@string/app_name", Theme = "@style/AppTheme.NoActionBar")]
     public class ReadingActivity : AppCompatActivity, NavigationView.IOnNavigationItemSelectedListener
     {
+        private Book book;
+
         private OidcClient oidcClient;
         private HttpClient _apiClient;
 
@@ -43,11 +48,12 @@ namespace HBR.View
 
         private string loadedSrc;
 
-        protected override void OnCreate(Bundle savedInstanceState)
+        protected override async void OnCreate(Bundle savedInstanceState)
         {
             base.OnCreate(savedInstanceState);
             Xamarin.Essentials.Platform.Init(this, savedInstanceState);
             SetContentView(Resource.Layout.activity_reading);
+
             Android.Support.V7.Widget.Toolbar toolbar = FindViewById<Android.Support.V7.Widget.Toolbar>(Resource.Id.toolbar);
             SetSupportActionBar(toolbar);
 
@@ -62,6 +68,15 @@ namespace HBR.View
             NavigationView navigationView = FindViewById<NavigationView>(Resource.Id.nav_view);
             tableMenu = navigationView.Menu;
             navigationView.SetNavigationItemSelectedListener(this);
+
+            textViewAuthor = FindViewById<TextView>(Resource.Id.textViewWriter);
+            textViewTitle = FindViewById<TextView>(Resource.Id.textViewTitle);
+            imageViewCover = FindViewById<ImageView>(Resource.Id.imageViewCover);
+
+            var serializedBook = Intent.GetStringExtra(nameof(Book));
+            book = JsonConvert.DeserializeObject<Book>(serializedBook);
+
+            await OpenEpub();
         }
 
         public override void OnBackPressed()
@@ -124,64 +139,55 @@ namespace HBR.View
 
         private async Task OpenEpub()
         {
-            //FileData fileData = await CrossFilePicker.Current.PickFile(new string[] { ".epub" });
-            //if (fileData == null)
-            //    return;
+            if (textViewAuthor == null)
+                textViewAuthor = FindViewById<TextView>(Resource.Id.textViewWriter);
+            if (textViewTitle == null)
+                textViewTitle = FindViewById<TextView>(Resource.Id.textViewTitle);
+            if (imageViewCover == null)
+                imageViewCover = FindViewById<ImageView>(Resource.Id.imageViewCover);
 
-            //using (var zipToOpen = new MemoryStream(fileData.DataArray))
-            //using (var zipArchive = new ZipArchive(zipToOpen, ZipArchiveMode.Read))
-            //{
-            //    var cont = zipArchive.Entries.FirstOrDefault(e => e.Name == "content.opf");
-            //    var docContents = XDocument.Load(cont.Open());
-            //    var nameSpaceContents = docContents.Root.Name.Namespace;
+            //textViewTitle.Text = book.Title;
+            //textViewAuthor.Text = book.Author;
 
-            //    var metadata = docContents.Descendants(nameSpaceContents + "metadata").Descendants();
+            var coverImage = await book.GetCoverAsync();
 
-            //    if (textViewAuthor == null)
-            //        textViewAuthor = FindViewById<TextView>(Resource.Id.textViewWriter);
-            //    if (textViewTitle == null)
-            //        textViewTitle = FindViewById<TextView>(Resource.Id.textViewTitle);
-            //    if (imageViewCover == null)
-            //        imageViewCover = FindViewById<ImageView>(Resource.Id.imageViewCover);
+            //if (coverImage != null)
+                //imageViewCover.SetImageBitmap(coverImage);
 
-            //    textViewTitle.Text = titleNode?.Value;
-            //    textViewAuthor.Text = authorNode?.Value;
+            chapterList = book.GetChapterList();
 
-            //    chapterList = FindChapterList(tableOfContents);
+            tableMenu.Clear();
 
-            //    tableMenu.Clear();
-            //}
+            var chapterIndex = 0;
+            foreach (var chapter in chapterList)
+            {
+                if (chapter.SubChapters.Count > 0)
+                {
+                    var subMenu = tableMenu.AddSubMenu(0, chapterIndex, Menu.None, chapter.ChapterTitle);
+                    chapter.MenuItemId = chapterIndex++;
+                    chapter.OnClickCallback = new Action<bool>(async forceReload => await LoadChapterAsync(chapter, forceReload));
 
-            //var chapterIndex = 0;
-            //foreach (var chapter in chapterList)
-            //{
-            //    if (chapter.SubChapters.Count > 0)
-            //    {
-            //        var subMenu = tableMenu.AddSubMenu(0, chapterIndex, Menu.None, chapter.ChapterTitle);
-            //        chapter.MenuItemId = chapterIndex++;
-            //        chapter.OnClickCallback = new Action<bool>(async forceReload => await LoadChapterAsync(chapter, fileData, forceReload));
+                    foreach (var subChapter in chapter.SubChapters)
+                    {
+                        subMenu.Add(0, chapterIndex, Menu.None, subChapter.ChapterTitle);
+                        subChapter.MenuItemId = chapterIndex++;
 
-            //        foreach (var subChapter in chapter.SubChapters)
-            //        {
-            //            subMenu.Add(0, chapterIndex, Menu.None, subChapter.ChapterTitle);
-            //            subChapter.MenuItemId = chapterIndex++;
+                        subChapter.OnClickCallback = new Action<bool>(async forceReload => await LoadChapterAsync(subChapter, forceReload));
+                    }
+                }
+                else
+                {
+                    tableMenu.Add(0, chapterIndex, Menu.None, chapter.ChapterTitle);
+                    chapter.MenuItemId = chapterIndex++;
 
-            //            subChapter.OnClickCallback = new Action<bool>(async forceReload => await LoadChapterAsync(subChapter, fileData, forceReload));
-            //        }
-            //    }
-            //    else
-            //    {
-            //        tableMenu.Add(0, chapterIndex, Menu.None, chapter.ChapterTitle);
-            //        chapter.MenuItemId = chapterIndex++;
+                    chapter.OnClickCallback = new Action<bool>(async forceReload => await LoadChapterAsync(chapter, forceReload));
+                }
+            }
 
-            //        chapter.OnClickCallback = new Action<bool>(async forceReload => await LoadChapterAsync(chapter, fileData, forceReload));
-            //    }
-            //}
-
-            //AllChapters?.FirstOrDefault()?.OnClickCallback?.Invoke(true);
+            AllChapters?.FirstOrDefault()?.OnClickCallback?.Invoke(true);
         }
 
-        private async Task LoadChapterAsync(Chapter chapter, FileData fileData, bool forceReload)
+        private async Task LoadChapterAsync(Chapter chapter, bool forceReload)
         {
             var link = chapter.Src.Split("#");
             var src = link[0];
@@ -189,19 +195,8 @@ namespace HBR.View
 
             if (loadedSrc != src || forceReload)
             {
-                using (var zipToOpen = new MemoryStream(fileData.DataArray))
-                using (var zipArchive = new ZipArchive(zipToOpen, ZipArchiveMode.Read))
-                {
-
-                    var dataStream = zipArchive.Entries.FirstOrDefault(e => e.FullName == "OEBPS/" + src);
-
-                    if (dataStream == null)
-                        dataStream = zipArchive.Entries.FirstOrDefault(e => e.FullName.Contains(src));
-
-                    if (dataStream != null)
-                        using (var streamReader = new StreamReader(dataStream.Open()))
-                            webView.LoadData(await streamReader.ReadToEndAsync(), "text/html", "utf-8");
-                }
+                using (var streamReader = book.GetDataSteamReader(src))
+                    webView.LoadData(await streamReader.ReadToEndAsync(), "text/html", "utf-8");
 
                 loadedSrc = src;
             }

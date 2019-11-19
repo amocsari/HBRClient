@@ -3,10 +3,14 @@ using Android.Content;
 using Android.Support.V7.Widget;
 using Android.Views;
 using HBR.Context;
+using HBR.Extensions;
 using HBR.Model.Entity;
+using HBR.View;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using static Android.Support.V7.Widget.RecyclerView;
 using Resource = HBR.Resource;
 
@@ -58,7 +62,11 @@ namespace HbrClient.Library
             var position = RecyclerView.GetChildAdapterPosition(view);
             var book = Library[position];
 
-            //TODO: open book
+            var intent = new Intent(Context, typeof(ReadingActivity));
+            var serializedBook = JsonConvert.SerializeObject(book);
+            intent.PutExtra(nameof(Book), serializedBook);
+
+            Context.StartActivity(intent);
         }
 
         public void OnClick(object sender, EventArgs eventArgs)
@@ -88,7 +96,10 @@ namespace HbrClient.Library
 
                         var book = Library[position];
 
-                        //TODO: törlés
+                        await RemoveBookFromDatabaseAndClearData(book);
+
+                        //TODO: call API
+                        //TODO: ez a rendszerből is törli a könyvet
 
                         Library.RemoveAt(position);
                         NotifyDataSetChanged();
@@ -117,7 +128,10 @@ namespace HbrClient.Library
 
                         var book = Library[position];
 
-                        //TODO: törlés
+                        await RemoveBookFromDatabaseAndClearData(book);
+
+                        //TODO: call API
+                        //TODO: ez csak a felhasználótól veszi el a könyvet
 
                         Library.RemoveAt(position);
                         NotifyDataSetChanged();
@@ -155,6 +169,15 @@ namespace HbrClient.Library
         {
             Library.Clear();
             NotifyDataSetChanged();
+        }
+
+        private async Task RemoveBookFromDatabaseAndClearData(Book book)
+        {
+            var bookToRemove = _dbcontext.Books.FirstOrDefault(b => b.BookId == book.BookId);
+            _dbcontext.Books.Remove(bookToRemove);
+            await _dbcontext.SaveChangesAsync();
+
+            book.RemoveData();
         }
     }
 }

@@ -54,7 +54,7 @@ namespace HBR.Extensions
             if (string.IsNullOrEmpty(book.CoverLocation))
                 return null;
 
-            var file = book.GetFileByName($"*{book.CoverLocation}");
+            var file = book.GetFileByName($"{book.CoverLocation}*");
 
             try
             {
@@ -67,6 +67,21 @@ namespace HBR.Extensions
             {
                 return null;
             }
+        }
+
+        public static StreamReader GetDataSteamReader(this Book book, string path)
+        {
+            var src = path.Split("/").Last();
+
+            var file = book.GetFileByName(src);
+            var stream = File.Open(file, FileMode.Open);
+            return new StreamReader(stream);
+        }
+
+        public static void RemoveData(this Book book)
+        {
+            var directory = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Personal), book.BookId);
+            Directory.Delete(directory, true);
         }
 
         private static string GetFileByName(this Book book, string filenamePattern)
