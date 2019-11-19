@@ -56,7 +56,7 @@ namespace HbrClient.Library
             return bookViewHolder;
         }
 
-        private async void OnItemClick(object sender, EventArgs e)
+        private void OnItemClick(object sender, EventArgs e)
         {
             View view = (View)sender;
             var position = RecyclerView.GetChildAdapterPosition(view);

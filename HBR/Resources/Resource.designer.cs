@@ -6287,8 +6287,8 @@ namespace HBR
 			// aapt resource value: 0x7f0a003f
 			public const int always = 2131361855;
 			
-			// aapt resource value: 0x7f0a00aa
-			public const int appbar_main_top = 2131361962;
+			// aapt resource value: 0x7f0a00ab
+			public const int appbar_main_top = 2131361963;
 			
 			// aapt resource value: 0x7f0a0072
 			public const int async = 2131361906;
@@ -6404,8 +6404,8 @@ namespace HBR
 			// aapt resource value: 0x7f0a0027
 			public const int disableHome = 2131361831;
 			
-			// aapt resource value: 0x7f0a00ae
-			public const int drawer_layout = 2131361966;
+			// aapt resource value: 0x7f0a00ad
+			public const int drawer_layout = 2131361965;
 			
 			// aapt resource value: 0x7f0a009c
 			public const int edit_query = 2131361948;
@@ -6443,8 +6443,8 @@ namespace HBR
 			// aapt resource value: 0x7f0a005c
 			public const int @fixed = 2131361884;
 			
-			// aapt resource value: 0x7f0a00ad
-			public const int floatingActionButton_addBook = 2131361965;
+			// aapt resource value: 0x7f0a00ac
+			public const int floatingActionButton_addBook = 2131361964;
 			
 			// aapt resource value: 0x7f0a0074
 			public const int forever = 2131361908;
@@ -6477,7 +6477,7 @@ namespace HBR
 			public const int image = 2131361915;
 			
 			// aapt resource value: 0x7f0a00c6
-			public const int imageViewCover = 2131361990;
+			public const int image_view_cover = 2131361990;
 			
 			// aapt resource value: 0x7f0a00d9
 			public const int image_view_menu = 2131362009;
@@ -6554,8 +6554,8 @@ namespace HBR
 			// aapt resource value: 0x7f0a002f
 			public const int multiply = 2131361839;
 			
-			// aapt resource value: 0x7f0a00af
-			public const int nav_view = 2131361967;
+			// aapt resource value: 0x7f0a00ae
+			public const int nav_view = 2131361966;
 			
 			// aapt resource value: 0x7f0a00bc
 			public const int navigation_header_container = 2131361980;
@@ -6611,8 +6611,8 @@ namespace HBR
 			// aapt resource value: 0x7f0a0094
 			public const int radio = 2131361940;
 			
-			// aapt resource value: 0x7f0a00ac
-			public const int recyclerView_bookList = 2131361964;
+			// aapt resource value: 0x7f0a00aa
+			public const int recyclerView_bookList = 2131361962;
 			
 			// aapt resource value: 0x7f0a0055
 			public const int right = 2131361877;
@@ -6779,14 +6779,14 @@ namespace HBR
 			// aapt resource value: 0x7f0a00c3
 			public const int textViewStatus = 2131361987;
 			
-			// aapt resource value: 0x7f0a00c7
-			public const int textViewTitle = 2131361991;
-			
-			// aapt resource value: 0x7f0a00c8
-			public const int textViewWriter = 2131361992;
-			
 			// aapt resource value: 0x7f0a00c1
 			public const int text_input_password_toggle = 2131361985;
+			
+			// aapt resource value: 0x7f0a00c8
+			public const int text_view_author = 2131361992;
+			
+			// aapt resource value: 0x7f0a00c7
+			public const int text_view_title = 2131361991;
 			
 			// aapt resource value: 0x7f0a0018
 			public const int textinput_counter = 2131361816;
@@ -6809,8 +6809,8 @@ namespace HBR
 			// aapt resource value: 0x7f0a008b
 			public const int title_template = 2131361931;
 			
-			// aapt resource value: 0x7f0a00ab
-			public const int toolbar = 2131361963;
+			// aapt resource value: 0x7f0a00af
+			public const int toolbar = 2131361967;
 			
 			// aapt resource value: 0x7f0a0045
 			public const int top = 2131361861;

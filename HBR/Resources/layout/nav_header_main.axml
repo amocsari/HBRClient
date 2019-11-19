@@ -13,20 +13,21 @@
     android:theme="@style/ThemeOverlay.AppCompat.Dark">
 
     <ImageView
-        android:id="@+id/imageViewCover"
+        android:id="@+id/image_view_cover"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
         android:paddingTop="@dimen/nav_header_vertical_spacing"/>
 
     <TextView
-        android:id="@+id/textViewTitle"
+        android:id="@+id/text_view_title"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:paddingTop="@dimen/nav_header_vertical_spacing"
         android:textAppearance="@style/TextAppearance.AppCompat.Body1" />
 
     <TextView
-        android:id="@+id/textViewWriter"
+        android:id="@+id/text_view_author"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content" />
 

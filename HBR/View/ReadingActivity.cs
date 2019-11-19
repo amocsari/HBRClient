@@ -1,13 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
-using System.IO.Compression;
 using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
-using System.Xml.Linq;
 using Android.App;
-using Android.Graphics;
 using Android.OS;
 using Android.Runtime;
 using Android.Support.Design.Widget;
@@ -22,8 +18,6 @@ using HBR.Model;
 using HBR.Model.Entity;
 using IdentityModel.OidcClient;
 using Newtonsoft.Json;
-using Plugin.FilePicker;
-using Plugin.FilePicker.Abstractions;
 
 namespace HBR.View
 {
@@ -69,9 +63,11 @@ namespace HBR.View
             tableMenu = navigationView.Menu;
             navigationView.SetNavigationItemSelectedListener(this);
 
-            textViewAuthor = FindViewById<TextView>(Resource.Id.textViewWriter);
-            textViewTitle = FindViewById<TextView>(Resource.Id.textViewTitle);
-            imageViewCover = FindViewById<ImageView>(Resource.Id.imageViewCover);
+            var navigationViewHeader = navigationView.GetHeaderView(0);
+
+            textViewAuthor = navigationViewHeader.FindViewById<TextView>(Resource.Id.text_view_author);
+            textViewTitle = navigationViewHeader.FindViewById<TextView>(Resource.Id.text_view_title);
+            imageViewCover = navigationViewHeader.FindViewById<ImageView>(Resource.Id.image_view_cover);
 
             var serializedBook = Intent.GetStringExtra(nameof(Book));
             book = JsonConvert.DeserializeObject<Book>(serializedBook);
@@ -139,20 +135,13 @@ namespace HBR.View
 
         private async Task OpenEpub()
         {
-            if (textViewAuthor == null)
-                textViewAuthor = FindViewById<TextView>(Resource.Id.textViewWriter);
-            if (textViewTitle == null)
-                textViewTitle = FindViewById<TextView>(Resource.Id.textViewTitle);
-            if (imageViewCover == null)
-                imageViewCover = FindViewById<ImageView>(Resource.Id.imageViewCover);
-
-            //textViewTitle.Text = book.Title;
-            //textViewAuthor.Text = book.Author;
+            textViewTitle.Text = book.Title;
+            textViewAuthor.Text = book.Author;
 
             var coverImage = await book.GetCoverAsync();
 
-            //if (coverImage != null)
-                //imageViewCover.SetImageBitmap(coverImage);
+            if (coverImage != null)
+                imageViewCover.SetImageBitmap(coverImage);
 
             chapterList = book.GetChapterList();
 
