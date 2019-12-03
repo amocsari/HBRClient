@@ -3,9 +3,9 @@ using Microsoft.EntityFrameworkCore;
 using System;
 using System.IO;
 
-namespace HBR.Context
+namespace HBR.DbContext
 {
-    public class HbrClientDbContext : DbContext
+    public class HbrClientDbContext : Microsoft.EntityFrameworkCore.DbContext
     {
         private const string databaseName = "hbrDatabase.db";
 

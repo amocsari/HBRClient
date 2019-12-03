@@ -2,7 +2,7 @@
 using Android.Content;
 using Android.Support.V7.Widget;
 using Android.Views;
-using HBR.Context;
+using HBR.DbContext;
 using HBR.Extensions;
 using HBR.Model.Entity;
 using HBR.View;
@@ -19,29 +19,30 @@ namespace HbrClient.Library
     public class LibraryAdapter : Adapter
     {
         public List<Book> Library { get; set; }
-        public Context Context { get; set; }
+        private readonly Context _context;
         public RecyclerView RecyclerView { get; set; }
-        private HbrClientDbContext _dbcontext;
+        private readonly HbrClientDbContext _dbcontext;
 
-        public LibraryAdapter(List<Book> library, Context context)
-        {
-            Library = library;
-            Context = context;
-        }
-
-        public LibraryAdapter()
+        public LibraryAdapter(Context c)
         {
             Library = new List<Book>();
-            _dbcontext = ContextHelper.CreateContext();
+            _context = c;
+            _dbcontext = c.CreateContext();
         }
 
         public override int ItemCount => Library.Count;
 
-        public override void OnBindViewHolder(ViewHolder holder, int position)
+        public override async void OnBindViewHolder(ViewHolder holder, int position)
         {
             var bookViewHolder = holder as BookViewHolder;
             bookViewHolder.AuthorTextView.Text = Library[position].Author;
             bookViewHolder.TitleTextView.Text = Library[position].Title;
+
+            var coverImage = await Library[position].GetCoverAsync();
+            if (coverImage != null)
+                bookViewHolder.CoverImageView.SetImageBitmap(coverImage);
+            else
+                bookViewHolder.CoverImageView.SetImageResource(0);
         }
 
         public override ViewHolder OnCreateViewHolder(ViewGroup parent, int viewType)
@@ -62,11 +63,10 @@ namespace HbrClient.Library
             var position = RecyclerView.GetChildAdapterPosition(view);
             var book = Library[position];
 
-            var intent = new Intent(Context, typeof(ReadingActivity));
-            var serializedBook = JsonConvert.SerializeObject(book);
-            intent.PutExtra(nameof(Book), serializedBook);
+            var intent = new Intent(_context, typeof(ReadingActivity));
+            intent.PutExtra(nameof(Book.BookId), book.BookId);
 
-            Context.StartActivity(intent);
+            _context.StartActivity(intent);
         }
 
         public void OnClick(object sender, EventArgs eventArgs)

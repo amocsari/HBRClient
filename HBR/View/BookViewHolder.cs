@@ -10,12 +10,14 @@ namespace HbrClient.Library
         public TextView TitleTextView { get; set; }
         public TextView AuthorTextView { get; set; }
         public ImageView MenuButtonImageView { get; set; }
+        public ImageView CoverImageView { get; set; }
 
         public BookViewHolder(View view) : base(view)
         {
             TitleTextView = view.FindViewById<TextView>(Resource.Id.tv_title);
             AuthorTextView = view.FindViewById<TextView>(Resource.Id.tv_author);
             MenuButtonImageView = view.FindViewById<ImageView>(Resource.Id.image_view_menu);
+            CoverImageView = view.FindViewById<ImageView>(Resource.Id.image_view_cover);
         }
     }
 }

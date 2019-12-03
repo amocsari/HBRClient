@@ -5,7 +5,7 @@ using Android.App;
 using Android.OS;
 using Android.Support.Design.Widget;
 using Android.Support.V7.App;
-using HBR.Context;
+using HBR.DbContext;
 using HBR.Model.Entity;
 using HBR.Extensions;
 using Plugin.FilePicker;
@@ -21,8 +21,7 @@ namespace HBR.View
     public class BookListActivity : AppCompatActivity
     {
         private HbrClientDbContext _context;
-
-        private LibraryAdapter adapter = new LibraryAdapter();
+        private LibraryAdapter _adapter;
 
         protected override async void OnCreate(Bundle savedInstanceState)
         {
@@ -31,16 +30,17 @@ namespace HBR.View
             base.OnCreate(savedInstanceState);
             SetContentView(Resource.Layout.activity_booklist);
 
-            _context = await ContextHelper.CreateContextAsync();
+            _context = await this.CreateContextAsync();
+            _adapter = new LibraryAdapter(this);
 
             var recyclerView = FindViewById<RecyclerView>(Resource.Id.recyclerView_bookList);
-            recyclerView.SetAdapter(adapter);
-            adapter.RecyclerView = recyclerView;
-            adapter.Context = this;
+            recyclerView.SetAdapter(_adapter);
+            _adapter.RecyclerView = recyclerView;
+
             recyclerView.SetLayoutManager(new LinearLayoutManager(this));
 
             var bookList = await _context.Books.AsNoTracking().ToListAsync();
-            adapter.AddBooks(bookList);
+            _adapter.AddBooks(bookList);
 
             FloatingActionButton fab = FindViewById<FloatingActionButton>(Resource.Id.floatingActionButton_addBook);
             fab.Click += FabOnClick;
@@ -74,7 +74,7 @@ namespace HBR.View
             await _context.Books.AddAsync(book);
             await _context.SaveChangesAsync();
 
-            adapter.AddBook(book);
+            _adapter.AddBook(book);
         }
 
         protected override void OnDestroy()

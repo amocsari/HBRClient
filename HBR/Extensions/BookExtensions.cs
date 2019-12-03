@@ -56,6 +56,9 @@ namespace HBR.Extensions
 
             var file = book.GetFileByName($"{book.CoverLocation}*");
 
+            if (file == null)
+                return null;
+
             try
             {
                 using (var stream = File.Open(file, FileMode.Open))

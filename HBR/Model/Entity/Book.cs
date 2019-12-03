@@ -17,5 +17,14 @@ namespace HBR.Model.Entity
 
         [JsonProperty(nameof(CoverLocation))]
         public string CoverLocation { get; set; }
+
+        [JsonProperty(nameof(LastChapterIndex))]
+        public int? LastChapterIndex { get; set; }
+
+        [JsonProperty(nameof(LastSubChapterIndex))]
+        public int? LastSubChapterIndex { get; set; }
+
+        [JsonProperty(nameof(LastPosition))]
+        public int LastPosition { get; set; }
     }
 }

@@ -13,11 +13,12 @@ using Android.Support.V7.App;
 using Android.Views;
 using Android.Webkit;
 using Android.Widget;
+using HBR.DbContext;
 using HBR.Extensions;
 using HBR.Model;
 using HBR.Model.Entity;
 using IdentityModel.OidcClient;
-using Newtonsoft.Json;
+using Microsoft.EntityFrameworkCore;
 
 namespace HBR.View
 {
@@ -41,6 +42,10 @@ namespace HBR.View
         private List<Chapter> AllChapters { get => chapterList.Concat(chapterList.SelectMany(c => c.SubChapters)).ToList(); }
 
         private string loadedSrc;
+        private int? currentChapterIndex;
+        private int? currentSubChapterIndex;
+
+        private HbrClientDbContext _context;
 
         protected override async void OnCreate(Bundle savedInstanceState)
         {
@@ -69,10 +74,27 @@ namespace HBR.View
             textViewTitle = navigationViewHeader.FindViewById<TextView>(Resource.Id.text_view_title);
             imageViewCover = navigationViewHeader.FindViewById<ImageView>(Resource.Id.image_view_cover);
 
-            var serializedBook = Intent.GetStringExtra(nameof(Book));
-            book = JsonConvert.DeserializeObject<Book>(serializedBook);
+            _context = this.CreateContext();
+
+            var bookId = Intent.GetStringExtra(nameof(Book.BookId));
+            book = _context.Books.AsNoTracking().FirstOrDefault(b => b.BookId == bookId);
 
             await OpenEpub();
+        }
+
+        protected override async void OnStop()
+        {
+            var scroll = webView.ScrollY;
+
+            var bookToUpdate = _context.Books.FirstOrDefault(b => b.BookId == book.BookId);
+
+            bookToUpdate.LastChapterIndex = currentChapterIndex;
+            bookToUpdate.LastSubChapterIndex = currentSubChapterIndex;
+            bookToUpdate.LastPosition = scroll;
+
+            await _context.SaveChangesAsync();
+
+            base.OnPause();
         }
 
         public override void OnBackPressed()
@@ -173,7 +195,26 @@ namespace HBR.View
                 }
             }
 
-            AllChapters?.FirstOrDefault()?.OnClickCallback?.Invoke(true);
+            try
+            {
+                if (book.LastChapterIndex == null)
+                    AllChapters?.FirstOrDefault()?.OnClickCallback?.Invoke(true);
+                else
+                {
+                    var lastMainChapter = chapterList[book.LastChapterIndex.Value];
+
+                    if (book.LastSubChapterIndex == null)
+                        lastMainChapter?.OnClickCallback?.Invoke(true);
+                    else
+                        lastMainChapter.SubChapters[book.LastSubChapterIndex.Value]?.OnClickCallback?.Invoke(true);
+
+                    webView.ScrollY = book.LastPosition;
+                }
+            }
+            catch
+            {
+                AllChapters?.FirstOrDefault()?.OnClickCallback?.Invoke(true);
+            }
         }
 
         private async Task LoadChapterAsync(Chapter chapter, bool forceReload)
@@ -194,6 +235,22 @@ namespace HBR.View
                 webView.EvaluateJavascript($"document.getElementById(\"{ anchor }\").scrollIntoView(true);", null);
             else
                 webView.EvaluateJavascript("document.documentElement.scrollTop = 0;", null);
+
+            var chapterIndex = chapterList.IndexOf(chapter);
+            if (chapterIndex >= 0)
+            {
+                currentChapterIndex = chapterIndex;
+                currentSubChapterIndex = null;
+            }
+            else
+            {
+                var mainChapter = chapterList.FirstOrDefault(c => c.SubChapters != null && c.SubChapters.Contains(chapter));
+                if (mainChapter == null)
+                    return;
+
+                currentChapterIndex = chapterList.IndexOf(mainChapter);
+                currentSubChapterIndex = mainChapter.SubChapters.IndexOf(chapter);
+            }
         }
     }
 }
