@@ -12,6 +12,8 @@ namespace HBR.DbContext
     /// </summary>
     public static class ContextHelper
     {
+        private static HbrClientDbContext _context;
+
         public static void DeleteDatabase(this Context c)
         {
             var databaseName = "hbrDatabase.db";
@@ -21,21 +23,30 @@ namespace HBR.DbContext
 
         public static async Task<HbrClientDbContext> CreateContextAsync(this Context c)
         {
-            //c.DeleteDatabase();
-            var context = (HbrClientDbContext)Activator.CreateInstance(typeof(HbrClientDbContext));
-            await context.Database.EnsureCreatedAsync();
-            await context.Database.MigrateAsync();
+            if (_context == null)
+            {
+                c.DeleteDatabase();
+                var context = (HbrClientDbContext)Activator.CreateInstance(typeof(HbrClientDbContext));
+                await context.Database.EnsureCreatedAsync();
+                await context.Database.MigrateAsync();
 
-            return context;
+                _context = context;
+            }
+
+            return _context;
         }
         public static HbrClientDbContext CreateContext(this Context c)
         {
-            //c.DeleteDatabase("hbrDatabase.db");
-            var context = (HbrClientDbContext)Activator.CreateInstance(typeof(HbrClientDbContext));
-            context.Database.EnsureCreated();
-            context.Database.Migrate();
+            if (_context == null)
+            {
+                var context = (HbrClientDbContext)Activator.CreateInstance(typeof(HbrClientDbContext));
+                context.Database.EnsureCreated();
+                context.Database.Migrate();
 
-            return context;
+                _context = context;
+            }
+
+            return _context;
         }
     }
 }

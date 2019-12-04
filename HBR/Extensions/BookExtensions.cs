@@ -1,10 +1,12 @@
 ﻿using Android.Graphics;
 using HBR.Model;
 using HBR.Model.Entity;
+using HBR.Model.NavigationItem;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Security.Policy;
 using System.Threading.Tasks;
 using System.Xml.Linq;
 
@@ -35,7 +37,7 @@ namespace HBR.Extensions
             return book;
         }
 
-        public static List<Chapter> GetChapterList(this Book book)
+        public static List<ChapterNavigationItem> GetChapterList(this Book book)
         {
             var file = book.GetFileByName("toc.ncx");
 
@@ -81,6 +83,14 @@ namespace HBR.Extensions
             return new StreamReader(stream);
         }
 
+        public static string GetChapterUrl(this Book book, string path)
+        {
+            var src = path.Split("/").Last();
+            var url = book.GetFileByName(src);
+
+            return $"file:///{url}";
+        }
+
         public static void RemoveData(this Book book)
         {
             var directory = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Personal), book.BookId);
@@ -93,10 +103,10 @@ namespace HBR.Extensions
             return Directory.GetFiles(path, filenamePattern, SearchOption.AllDirectories).FirstOrDefault();
         }
 
-        private static List<Chapter> FindChapterList(XElement root)
+        private static List<ChapterNavigationItem> FindChapterList(XElement root)
         {
             var elements = root.Elements().Where(d => d.Name.LocalName == "navPoint");
-            var chapterList = new List<Chapter>();
+            var chapterList = new List<ChapterNavigationItem>();
 
             foreach (var element in elements)
             {
@@ -108,9 +118,9 @@ namespace HBR.Extensions
                 var chapterSrcElement = chapterElements.FirstOrDefault(d => d.Name.LocalName == "content");
                 var chapterSrc = chapterSrcElement.Attributes().FirstOrDefault(a => a.Name == "src")?.Value;
 
-                var chapter = new Chapter
+                var chapter = new ChapterNavigationItem
                 {
-                    ChapterTitle = chapterTitle,
+                    Text = chapterTitle,
                     Src = chapterSrc,
                     SubChapters = FindChapterList(element)
                 };

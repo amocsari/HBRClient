@@ -76,11 +76,15 @@
     <Compile Include="HbrApplication.cs" />
     <Compile Include="Extensions\BookExtensions.cs" />
     <Compile Include="Library\LibraryAdapter.cs" />
-    <Compile Include="Model\Chapter.cs" />
+    <Compile Include="Model\NavigationItems\BookmarkNavigationItem.cs" />
+    <Compile Include="Model\NavigationItems\ChapterNavigationItem.cs" />
     <Compile Include="Model\Entity\Book.cs" />
+    <Compile Include="Model\Entity\Bookmark.cs" />
+    <Compile Include="Model\NavigationItems\NavigationItem.cs" />
     <Compile Include="Resources\Resource.designer.cs" />
     <Compile Include="View\BookListActivity.cs" />
     <Compile Include="View\BookViewHolder.cs" />
+    <Compile Include="View\OverScrollWebView.cs" />
     <Compile Include="View\ReadingActivity.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
@@ -101,7 +105,7 @@
       <SubType>Designer</SubType>
       <Generator>MSBuild:UpdateGeneratedFiles</Generator>
     </AndroidResource>
-    <AndroidResource Include="Resources\layout\nav_header_main.axml">
+    <AndroidResource Include="Resources\layout\nav_header_main_left.axml">
       <SubType>Designer</SubType>
     </AndroidResource>
     <AndroidResource Include="Resources\values\colors.xml" />
@@ -118,7 +122,7 @@
     <AndroidResource Include="Resources\drawable-v21\ic_menu_send.xml" />
     <AndroidResource Include="Resources\drawable-v21\ic_menu_share.xml" />
     <AndroidResource Include="Resources\drawable-v21\ic_menu_slideshow.xml" />
-    <AndroidResource Include="Resources\menu\activity_main_drawer.xml" />
+    <AndroidResource Include="Resources\menu\activity_main_drawer_left.xml" />
     <AndroidResource Include="Resources\menu\menu_main.xml" />
     <AndroidResource Include="Resources\mipmap-anydpi-v26\ic_launcher.xml" />
     <AndroidResource Include="Resources\mipmap-anydpi-v26\ic_launcher_round.xml" />
@@ -728,6 +732,18 @@
   </ItemGroup>
   <ItemGroup>
     <AndroidResource Include="Resources\drawable-xxxhdpi\ic_pencil_outline_white_48dp.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <AndroidResource Include="Resources\menu\activity_main_drawer_right.xml">
+      <Generator>MSBuild:UpdateGeneratedFiles</Generator>
+      <SubType>Designer</SubType>
+    </AndroidResource>
+  </ItemGroup>
+  <ItemGroup>
+    <AndroidResource Include="Resources\layout\nav_header_main_right.axml">
+      <Generator>MSBuild:UpdateGeneratedFiles</Generator>
+      <SubType>Designer</SubType>
+    </AndroidResource>
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath)\Xamarin\Android\Xamarin.Android.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it.

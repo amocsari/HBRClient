@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
+using Acr.UserDialogs;
 using Android.App;
 using Android.OS;
 using Android.Runtime;
@@ -11,12 +12,12 @@ using Android.Support.V4.View;
 using Android.Support.V4.Widget;
 using Android.Support.V7.App;
 using Android.Views;
-using Android.Webkit;
 using Android.Widget;
 using HBR.DbContext;
 using HBR.Extensions;
 using HBR.Model;
 using HBR.Model.Entity;
+using HBR.Model.NavigationItem;
 using IdentityModel.OidcClient;
 using Microsoft.EntityFrameworkCore;
 
@@ -30,16 +31,18 @@ namespace HBR.View
         private OidcClient oidcClient;
         private HttpClient _apiClient;
 
-        private WebView webView;
+        private OverScrollWebView webView;
 
         private TextView textViewTitle;
         private TextView textViewAuthor;
         private ImageView imageViewCover;
 
-        private IMenu tableMenu;
+        private IMenu tableMenuLeft;
+        private IMenu tableMenuRight;
 
-        private List<Chapter> chapterList;
-        private List<Chapter> AllChapters { get => chapterList.Concat(chapterList.SelectMany(c => c.SubChapters)).ToList(); }
+        private List<ChapterNavigationItem> chapterList;
+        private List<BookmarkNavigationItem> bookmarkList;
+        private List<NavigationItem> AllNavigationItems => chapterList.Concat(chapterList.SelectMany(c => c.SubChapters)).Select(x => (NavigationItem)x).Concat(bookmarkList).ToList();
 
         private string loadedSrc;
         private int? currentChapterIndex;
@@ -56,19 +59,23 @@ namespace HBR.View
             Android.Support.V7.Widget.Toolbar toolbar = FindViewById<Android.Support.V7.Widget.Toolbar>(Resource.Id.toolbar);
             SetSupportActionBar(toolbar);
 
-            webView = FindViewById<WebView>(Resource.Id.contentWebView);
-            webView.Settings.JavaScriptEnabled = true;
+            webView = FindViewById<OverScrollWebView>(Resource.Id.contentWebView);
+            webView.OnOverScrollY = LoadNextChapter;
 
             var drawerLayout = FindViewById<DrawerLayout>(Resource.Id.drawer_layout);
             ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(this, drawerLayout, toolbar, Resource.String.navigation_drawer_open, Resource.String.navigation_drawer_close);
             drawerLayout.AddDrawerListener(toggle);
             toggle.SyncState();
 
-            NavigationView navigationView = FindViewById<NavigationView>(Resource.Id.nav_view);
-            tableMenu = navigationView.Menu;
-            navigationView.SetNavigationItemSelectedListener(this);
+            var navigationViewLeft = FindViewById<NavigationView>(Resource.Id.nav_view_left);
+            tableMenuLeft = navigationViewLeft.Menu;
+            navigationViewLeft.SetNavigationItemSelectedListener(this);
 
-            var navigationViewHeader = navigationView.GetHeaderView(0);
+            var navigationViewRight = FindViewById<NavigationView>(Resource.Id.nav_view_right);
+            tableMenuRight = navigationViewRight.Menu;
+            navigationViewRight.SetNavigationItemSelectedListener(this);
+
+            var navigationViewHeader = navigationViewLeft.GetHeaderView(0);
 
             textViewAuthor = navigationViewHeader.FindViewById<TextView>(Resource.Id.text_view_author);
             textViewTitle = navigationViewHeader.FindViewById<TextView>(Resource.Id.text_view_title);
@@ -77,24 +84,66 @@ namespace HBR.View
             _context = this.CreateContext();
 
             var bookId = Intent.GetStringExtra(nameof(Book.BookId));
-            book = _context.Books.AsNoTracking().FirstOrDefault(b => b.BookId == bookId);
+            book = await _context.Books.AsNoTracking().Include(b => b.Bookmarks).Include(b => b.LastPosition).FirstOrDefaultAsync(b => b.BookId == bookId);
 
             await OpenEpub();
         }
 
+        private async void LoadNextChapter()
+        {
+            if (currentChapterIndex == null)
+                return;
+            ChapterNavigationItem nextChapter = null;
+            try
+            {
+                var currentMainChapter = chapterList[currentChapterIndex ?? 0];
+                nextChapter = currentMainChapter.SubChapters.ElementAtOrDefault((currentChapterIndex ?? 0) + 1);
+
+                if (nextChapter == null)
+                {
+                    var nextMainChapter = chapterList.ElementAtOrDefault((currentChapterIndex ?? 0) + 1);
+
+                    nextChapter = nextMainChapter?.SubChapters?.FirstOrDefault();
+
+                    if (nextChapter == null)
+                        nextChapter = nextMainChapter;
+                }
+            }
+            catch { }
+
+            if (nextChapter != null)
+                await LoadChapterAsync(nextChapter, true);
+        }
+
         protected override async void OnStop()
         {
-            var scroll = webView.ScrollY;
+            try
+            {
+                UserDialogs.Instance.ShowLoading();
 
-            var bookToUpdate = _context.Books.FirstOrDefault(b => b.BookId == book.BookId);
+                var bookToUpdate = _context.Books.Include(b => b.LastPosition).FirstOrDefault(b => b.BookId == book.BookId);
 
-            bookToUpdate.LastChapterIndex = currentChapterIndex;
-            bookToUpdate.LastSubChapterIndex = currentSubChapterIndex;
-            bookToUpdate.LastPosition = scroll;
+                var bookmarkToDelete = bookToUpdate.LastPosition;
 
-            await _context.SaveChangesAsync();
+                bookToUpdate.LastPosition = CreateBookmarkFromCurrentPosition();
 
-            base.OnPause();
+                //await _context.SaveChangesAsync();
+
+                if (bookmarkToDelete != null)
+                {
+                    _context.BookMarks.Remove(bookmarkToDelete);
+                }
+                await _context.SaveChangesAsync();
+            }
+            catch (Exception e)
+            {
+
+            }
+            finally
+            {
+                UserDialogs.Instance.HideLoading();
+                base.OnStop();
+            }
         }
 
         public override void OnBackPressed()
@@ -118,7 +167,40 @@ namespace HBR.View
 
         public override bool OnOptionsItemSelected(IMenuItem item)
         {
+            if (item.ItemId == Resource.Id.action_bookmark)
+            {
+                OnActionBookmarkClicked();
+            }
             return base.OnOptionsItemSelected(item);
+        }
+
+        private async Task OnActionBookmarkClicked()
+        {
+            var promptResult = await UserDialogs.Instance.PromptAsync("Leírás", "Új könyvjelző");
+
+            if (!promptResult.Ok || string.IsNullOrEmpty(promptResult.Text))
+                return;
+
+            try
+            {
+                UserDialogs.Instance.ShowLoading();
+
+                var bookToUpdate = _context.Books.Include(b => b.Bookmarks).FirstOrDefault(b => b.BookId == book.BookId);
+                var description = promptResult.Text;
+
+                var bookmark = CreateBookmarkFromCurrentPosition(description, bookToUpdate.BookId);
+
+                bookToUpdate.Bookmarks.Add(bookmark);
+                await _context.SaveChangesAsync();
+            }
+            catch (Exception e)
+            {
+                await UserDialogs.Instance.AlertAsync(e.Message, e.GetType().Name);
+            }
+            finally
+            {
+                UserDialogs.Instance.HideLoading();
+            }
         }
 
         private async void FabOnClick(object sender, EventArgs eventArgs)
@@ -140,9 +222,9 @@ namespace HBR.View
 
         public bool OnNavigationItemSelected(IMenuItem item)
         {
-            var selectedChapter = AllChapters.FirstOrDefault(c => c.MenuItemId == item.ItemId);
+            var selectedChapter = AllNavigationItems.FirstOrDefault(c => c.MenuItemId == item.ItemId);
 
-            selectedChapter?.OnClickCallback?.Invoke(false);
+            selectedChapter?.OnClickCallback?.Invoke();
 
             DrawerLayout drawer = FindViewById<DrawerLayout>(Resource.Id.drawer_layout);
             drawer.CloseDrawer(GravityCompat.Start);
@@ -166,58 +248,76 @@ namespace HBR.View
                 imageViewCover.SetImageBitmap(coverImage);
 
             chapterList = book.GetChapterList();
+            bookmarkList = book.Bookmarks.Select(b => new BookmarkNavigationItem
+            {
+                Text = b.Description,
+                OnClickCallback = new Action(() => LoadBookmark(b))
+            }).ToList();
 
-            tableMenu.Clear();
+            tableMenuLeft.Clear();
+            tableMenuRight.Clear();
 
-            var chapterIndex = 0;
+            var navigationItemIndex = 0;
             foreach (var chapter in chapterList)
             {
                 if (chapter.SubChapters.Count > 0)
                 {
-                    var subMenu = tableMenu.AddSubMenu(0, chapterIndex, Menu.None, chapter.ChapterTitle);
-                    chapter.MenuItemId = chapterIndex++;
-                    chapter.OnClickCallback = new Action<bool>(async forceReload => await LoadChapterAsync(chapter, forceReload));
+                    var subMenu = tableMenuLeft.AddSubMenu(0, navigationItemIndex, Menu.None, chapter.Text);
+                    chapter.MenuItemId = navigationItemIndex++;
+                    chapter.OnClickCallback = new Action(async () => await LoadChapterAsync(chapter));
 
                     foreach (var subChapter in chapter.SubChapters)
                     {
-                        subMenu.Add(0, chapterIndex, Menu.None, subChapter.ChapterTitle);
-                        subChapter.MenuItemId = chapterIndex++;
+                        subMenu.Add(0, navigationItemIndex, Menu.None, subChapter.Text);
+                        subChapter.MenuItemId = navigationItemIndex++;
 
-                        subChapter.OnClickCallback = new Action<bool>(async forceReload => await LoadChapterAsync(subChapter, forceReload));
+                        subChapter.OnClickCallback = new Action(async () => await LoadChapterAsync(subChapter));
                     }
                 }
                 else
                 {
-                    tableMenu.Add(0, chapterIndex, Menu.None, chapter.ChapterTitle);
-                    chapter.MenuItemId = chapterIndex++;
+                    tableMenuLeft.Add(0, navigationItemIndex, Menu.None, chapter.Text);
+                    chapter.MenuItemId = navigationItemIndex++;
 
-                    chapter.OnClickCallback = new Action<bool>(async forceReload => await LoadChapterAsync(chapter, forceReload));
+                    chapter.OnClickCallback = new Action(async () => await LoadChapterAsync(chapter));
                 }
+            }
+
+
+            foreach(var bookmark in bookmarkList)
+            {
+                tableMenuRight.Add(0, navigationItemIndex, Menu.None, bookmark.Text);
+                bookmark.MenuItemId = navigationItemIndex++;
             }
 
             try
             {
-                if (book.LastChapterIndex == null)
-                    AllChapters?.FirstOrDefault()?.OnClickCallback?.Invoke(true);
-                else
-                {
-                    var lastMainChapter = chapterList[book.LastChapterIndex.Value];
-
-                    if (book.LastSubChapterIndex == null)
-                        lastMainChapter?.OnClickCallback?.Invoke(true);
-                    else
-                        lastMainChapter.SubChapters[book.LastSubChapterIndex.Value]?.OnClickCallback?.Invoke(true);
-
-                    webView.ScrollY = book.LastPosition;
-                }
+                LoadBookmark(book.LastPosition);
             }
             catch
             {
-                AllChapters?.FirstOrDefault()?.OnClickCallback?.Invoke(true);
+                chapterList?.FirstOrDefault()?.OnClickCallback?.Invoke();
             }
         }
 
-        private async Task LoadChapterAsync(Chapter chapter, bool forceReload)
+        private void LoadBookmark(Bookmark bookmark)
+        {
+            if (bookmark != null)
+            {
+                var lastMainChapter = chapterList[bookmark.ChapterIndex];
+
+                if (bookmark.SubChapterIndex == null)
+                    lastMainChapter?.OnClickCallback?.Invoke();
+                else
+                    lastMainChapter.SubChapters[bookmark.SubChapterIndex.Value]?.OnClickCallback?.Invoke();
+
+                webView.ScrollY = bookmark.Position;
+            }
+            else
+                chapterList?.FirstOrDefault()?.OnClickCallback?.Invoke();
+        }
+
+        private async Task LoadChapterAsync(ChapterNavigationItem chapter, bool forceReload = false)
         {
             var link = chapter.Src.Split("#");
             var src = link[0];
@@ -225,16 +325,16 @@ namespace HBR.View
 
             if (loadedSrc != src || forceReload)
             {
-                using (var streamReader = book.GetDataSteamReader(src))
-                    webView.LoadData(await streamReader.ReadToEndAsync(), "text/html", "utf-8");
+                var url = book.GetChapterUrl(src);
+                webView.LoadUrl(url);
 
                 loadedSrc = src;
             }
 
             if (!string.IsNullOrEmpty(anchor))
-                webView.EvaluateJavascript($"document.getElementById(\"{ anchor }\").scrollIntoView(true);", null);
+                webView.ScrollToAnchor(anchor);
             else
-                webView.EvaluateJavascript("document.documentElement.scrollTop = 0;", null);
+                webView.ScrollToTop();
 
             var chapterIndex = chapterList.IndexOf(chapter);
             if (chapterIndex >= 0)
@@ -251,6 +351,21 @@ namespace HBR.View
                 currentChapterIndex = chapterList.IndexOf(mainChapter);
                 currentSubChapterIndex = mainChapter.SubChapters.IndexOf(chapter);
             }
+        }
+
+        private Bookmark CreateBookmarkFromCurrentPosition(string description = null, string bookId = null)
+        {
+            var scroll = webView.ScrollY;
+
+            return new Bookmark
+            {
+                BookmarkId = Guid.NewGuid().ToString(),
+                Description = description,
+                BookId = bookId,
+                ChapterIndex = currentChapterIndex ?? 0,
+                SubChapterIndex = currentSubChapterIndex,
+                Position = scroll
+            };
         }
     }
 }

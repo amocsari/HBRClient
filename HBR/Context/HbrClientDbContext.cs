@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.IO;
+using System.Security.Permissions;
 
 namespace HBR.DbContext
 {
@@ -10,6 +11,7 @@ namespace HBR.DbContext
         private const string databaseName = "hbrDatabase.db";
 
         public DbSet<Book> Books { get; set; }
+        public DbSet<Bookmark> BookMarks { get; set; }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
