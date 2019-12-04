@@ -5,5 +5,6 @@
         android:id="@+id/action_bookmark"
         android:orderInCategory="100"
         android:title="Könyvjelző létrehozása"
+        android:icon="@drawable/ic_bookmark_plus_outline_black_24dp"
         app:showAsAction="never" />
 </menu>

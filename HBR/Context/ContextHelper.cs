@@ -16,7 +16,7 @@ namespace HBR.DbContext
 
         public static void DeleteDatabase(this Context c)
         {
-            var databaseName = "hbrDatabase.db";
+            var databaseName = "hbrClientDatabase.db";
             string databasePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Personal), databaseName);
             var a = c.DeleteDatabase(databasePath);
         }
@@ -25,7 +25,6 @@ namespace HBR.DbContext
         {
             if (_context == null)
             {
-                c.DeleteDatabase();
                 var context = (HbrClientDbContext)Activator.CreateInstance(typeof(HbrClientDbContext));
                 await context.Database.EnsureCreatedAsync();
                 await context.Database.MigrateAsync();

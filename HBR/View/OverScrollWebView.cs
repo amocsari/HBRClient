@@ -45,6 +45,11 @@ namespace HBR.View
             EvaluateJavascript("document.documentElement.scrollTop = 0;", null);
         }
 
+        public void ScrollToY(int y)
+        {
+            EvaluateJavascript($"document.documentElement.scrollTop = {y};", null);
+        }
+
         public void ScrollToAnchor(string anchor)
         {
             EvaluateJavascript($"document.getElementById(\"{ anchor }\").scrollIntoView(true);", null);

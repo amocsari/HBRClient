@@ -8,7 +8,7 @@ namespace HBR.DbContext
 {
     public class HbrClientDbContext : Microsoft.EntityFrameworkCore.DbContext
     {
-        private const string databaseName = "hbrDatabase.db";
+        private const string databaseName = "hbrClientDatabase.db";
 
         public DbSet<Book> Books { get; set; }
         public DbSet<Bookmark> BookMarks { get; set; }

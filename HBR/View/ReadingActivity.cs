@@ -149,9 +149,9 @@ namespace HBR.View
         public override void OnBackPressed()
         {
             DrawerLayout drawer = FindViewById<DrawerLayout>(Resource.Id.drawer_layout);
-            if (drawer.IsDrawerOpen(GravityCompat.Start))
+            if (drawer.IsDrawerOpen(GravityCompat.Start) || drawer.IsDrawerOpen(GravityCompat.End))
             {
-                drawer.CloseDrawer(GravityCompat.Start);
+                drawer.CloseDrawers();
             }
             else
             {
@@ -162,7 +162,8 @@ namespace HBR.View
         public override bool OnCreateOptionsMenu(IMenu menu)
         {
             MenuInflater.Inflate(Resource.Menu.menu_main, menu);
-            return true;
+
+            return base.OnCreateOptionsMenu(menu);
         }
 
         public override bool OnOptionsItemSelected(IMenuItem item)
@@ -192,6 +193,18 @@ namespace HBR.View
 
                 bookToUpdate.Bookmarks.Add(bookmark);
                 await _context.SaveChangesAsync();
+
+                var navigationItemIndex = AllNavigationItems.Max(ni => ni.MenuItemId) + 1;
+
+                var navigationItem = new BookmarkNavigationItem
+                {
+                    MenuItemId = navigationItemIndex,
+                    Text = bookmark.Description,
+                    OnClickCallback = new Action(() => LoadBookmark(bookmark))
+                };
+
+                tableMenuRight.Add(0, navigationItemIndex, Menu.None, navigationItem.Text);
+                bookmarkList.Add(navigationItem);
             }
             catch (Exception e)
             {
@@ -284,7 +297,7 @@ namespace HBR.View
             }
 
 
-            foreach(var bookmark in bookmarkList)
+            foreach (var bookmark in bookmarkList)
             {
                 tableMenuRight.Add(0, navigationItemIndex, Menu.None, bookmark.Text);
                 bookmark.MenuItemId = navigationItemIndex++;
